@@ -3,6 +3,7 @@ from collections import defaultdict
 import pandas as pd
 
 root = ""  # insert desired folder here
+permissionissues = []
 
 
 def filepathfinder(naming):
@@ -14,7 +15,6 @@ def filepathfinder(naming):
             if file.endswith(naming):
                 csvfiles.append(os.path.join(path, file).replace('\\', '/'))
 
-    #
     mastertxt = os.path.join(root, "listofcsvfiles.txt").replace('\\', '/')
     with open(mastertxt, 'w+') as f:
         for i in range(len(csvfiles)):
@@ -24,35 +24,40 @@ def filepathfinder(naming):
 
 
 def wordsort(transcriptcsv):
-    wordlist = defaultdict(lambda: defaultdict(lambda : [0, 0]))  # [wordcount, bincount]
+    # wordlist[word] = [wordcount, bincount, index count]
+    wordlist = defaultdict(lambda: defaultdict(lambda: [0, 0, ""]))
     wordcount = []
     binindexcount = []
     errors = []
 
-    i = 0
-    with open(transcriptcsv, 'r+') as f:
-        csv_reader = csv.reader(f, delimiter=',')
-        for row in csv_reader:
-            try:
-                bincount = int(row[0])
-                linecount = int(row[1])
-                for word in row[2].split(' '):
-                    if len(word) > 0:
-                        wordlist[linecount][word][0] += 1
-                        wordlist[linecount][word][1] = bincount
-            except ValueError:
-                errors.append(transcriptcsv)
-                i += 1
-                if i > 2:
-                    return None
-    i = 0
-    for linecount in wordlist.keys():
-        for word in wordlist[linecount].keys():
-            count = wordlist[linecount][word][0]
-            bincount = wordlist[linecount][word][1]
+    try:
+        i = 0
+        with open(transcriptcsv, 'r+') as f:
+            csv_reader = csv.reader(f, delimiter=',')
+            for row in csv_reader:
+                try:
+                    bincount = int(row[0])
+                    linecount = int(row[1])
+                    for word in row[2].split(' '):
+                        if len(word) > 0:
+                            wordlist[linecount][word][0] += 1
+                            wordlist[linecount][word][1] = bincount
+                except ValueError:
+                    errors.append(transcriptcsv)
+                    i += 1
+                    if i > 2:
+                        return None
+        i = 0
+        for linecount in wordlist.keys():
+            for word in wordlist[linecount].keys():
+                count = wordlist[linecount][word][0]
+                bincount = wordlist[linecount][word][1]
 
-            wordcount.append((bincount, word, linecount, count))
-    return wordcount
+                wordcount.append((bincount, word, linecount, count))
+        return wordcount
+    except PermissionError:
+        permissionissues.append(transcriptcsv)
+        return None
 
 
 pd.set_option('precision', 1)
@@ -62,8 +67,7 @@ for file in filepathfinder("final.csv"):
     if not wordlist:
         print(file)
         continue
-
-    # df = pd.DataFrame.from_dict(wordlist, orient="index")
+    
     df = pd.DataFrame(
         wordlist,
         columns=['bincount', 'word', 'line-number', 'occurance count in utterance'])
@@ -79,3 +83,10 @@ for file in filepathfinder("final.csv"):
             break
 
     df.to_excel(savepath, index=False)
+
+if permissionissues:
+    issuestxt = os.path.join(root, "listofcsvs_error.txt").replace('\\', '/')
+    with open(issuestxt, 'w+') as f:
+        f.write("These files were open on someone's computer, so they could not be parsed at this time. Please save and close the file, before trying again.\n-----------\n")
+        for i in range(len(permissionissues)):
+            f.write(str(permissionissues[i] + '\n'))
