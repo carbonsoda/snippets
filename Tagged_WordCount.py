@@ -2,8 +2,6 @@ import os, csv
 from collections import defaultdict
 import pandas as pd
 
-# d = defaultdict(partial(defaultdict, int))
-# makes pickle-able
 
 folder = "" # desired root folder here
 

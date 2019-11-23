@@ -27,7 +27,6 @@ def wordsort(transcriptcsv):
     # wordlist[word] = [wordcount, bincount, index count]
     wordlist = defaultdict(lambda: defaultdict(lambda: [0, 0, ""]))
     wordcount = []
-    binindexcount = []
     errors = []
 
     try:
@@ -67,10 +66,12 @@ for file in filepathfinder("final.csv"):
     if not wordlist:
         print(file)
         continue
+
+    labels = [
+        'bincount', 'word', 'line-number', 'occurance count in utterance'
+    ]
     
-    df = pd.DataFrame(
-        wordlist,
-        columns=['bincount', 'word', 'line-number', 'occurance count in utterance'])
+    df = pd.DataFrame(wordlist, columns=labels)
 
     savepath = os.path.splitext(file)[0] + '_wordlist' + '.xlsx'
     i = 2
